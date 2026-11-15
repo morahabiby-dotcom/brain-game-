@@ -1,0 +1,365 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Brainy's Brain Game</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one centred column, one big question at a time, chunky tap targets for small hands. */
+:root {
+  --sky: #DDF2FF; --card: #FFFFFF; --ink: #2B2B3A; --muted: #5B6178;
+  --pink: #FF8FA8; --pink-d: #D9577A; --purple: #6B2C91;
+  --green: #2E9E4A; --green-bg: #DDF6E1; --red-bg: #FFE3DF; --red: #E0604F;
+  --yellow: #FFC93C; --edge: #B7D6EC; --blue: #2F80ED;
+  --font: "Fredoka", "Trebuchet MS", "Comic Sans MS", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0; background: var(--sky); color: var(--ink); font-family: var(--font);
+  font-size: 20px; line-height: 1.35;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 32px;
+  -webkit-tap-highlight-color: transparent;
+}
+.wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+button { font-family: inherit; cursor: pointer; }
+button:focus-visible { outline: 4px solid var(--blue); outline-offset: 3px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.stars { display: flex; gap: 4px; flex-wrap: wrap; }
+.star { width: 30px; height: 30px; }
+.star path { fill: #fff; stroke: var(--edge); stroke-width: 2.5; stroke-linejoin: round; transition: fill .3s; }
+.star.on path { fill: var(--yellow); stroke: #E0A200; }
+.star.now path { stroke: var(--purple); }
+.icon-btn { background: var(--card); border: 3px solid var(--edge); border-radius: 16px; min-width: 52px; height: 52px; font-size: 24px; padding: 0 12px; color: var(--ink); }
+
+.card { background: var(--card); border-radius: 28px; padding: 20px; box-shadow: 0 6px 0 var(--edge); }
+
+/* start + end */
+.center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+h1 { font-size: clamp(34px, 9vw, 50px); line-height: 1.05; margin: 0; color: var(--purple); font-weight: 700; text-wrap: balance; }
+h2 { font-size: 30px; margin: 0; color: var(--purple); text-wrap: balance; }
+.lead { margin: 0; color: var(--muted); font-size: 22px; max-width: 28ch; }
+.big { background: var(--green); color: #fff; border: 0; border-radius: 26px; font-size: 32px; font-weight: 700; padding: 16px 44px; box-shadow: 0 7px 0 #1F7A36; min-height: 72px; transition: transform .08s, box-shadow .08s; }
+.big:active { transform: translateY(5px); box-shadow: 0 2px 0 #1F7A36; }
+.big.alt { background: var(--blue); box-shadow: 0 7px 0 #1E5BB5; }
+.big.alt:active { box-shadow: 0 2px 0 #1E5BB5; }
+.mascot svg { width: 150px; height: auto; display: block; }
+.start-mascot svg { width: 210px; }
+.mascot.bounce svg { animation: hop 1.8s ease-in-out infinite; }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+/* question */
+.ask { display: flex; align-items: center; gap: 12px; }
+.ask .mascot svg { width: 104px; }
+.bubble { position: relative; flex: 1; min-width: 0; background: #FFF7D6; border: 3px solid var(--yellow); border-radius: 24px; padding: 14px 16px; font-size: 26px; font-weight: 600; line-height: 1.2; }
+.bubble::before { content: ""; position: absolute; left: -14px; top: 50%; margin-top: -10px; border: 10px solid transparent; border-right: 14px solid var(--yellow); border-left: 0; }
+.listen { margin-top: 10px; display: inline-flex; align-items: center; gap: 8px; background: #fff; border: 3px solid var(--edge); border-radius: 16px; font-size: 18px; font-weight: 600; padding: 6px 14px; color: var(--purple); min-height: 44px; }
+
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.opt { display: flex; align-items: center; gap: 14px; text-align: left; background: var(--card); border: 4px solid var(--edge); border-radius: 22px; padding: 12px 16px; min-height: 76px; font-size: 24px; font-weight: 600; color: var(--ink); box-shadow: 0 5px 0 var(--edge); transition: transform .08s, box-shadow .08s; }
+.opt:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--edge); }
+.opt .pic { font-size: 40px; line-height: 1; flex: none; }
+.opt.right { background: var(--green-bg); border-color: var(--green); box-shadow: 0 5px 0 var(--green); }
+.opt.wrong { background: var(--red-bg); border-color: #F2A093; box-shadow: none; animation: shake .4s; color: #8A4B42; }
+.opt:disabled { cursor: default; }
+.opt.dim { opacity: .5; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+.msg { min-height: 64px; display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 600; }
+.msg.good { color: var(--green); }
+.msg.try { color: var(--red); }
+.fact { font-size: 21px; font-weight: 500; color: var(--ink); background: var(--green-bg); border-radius: 18px; padding: 10px 16px; }
+.nextrow { display: flex; justify-content: center; }
+
+/* egg lab */
+.lab { background: #F1F8FF; border: 3px dashed var(--edge); border-radius: 24px; padding: 8px; }
+.lab svg { width: 100%; height: auto; max-height: 240px; display: block; }
+#egg { transform: translate(160px, 38px); }
+#egg.drop { animation: drop .75s cubic-bezier(.55, 0, 1, .55) forwards; }
+#egg.soft { animation: drop .75s cubic-bezier(.55, 0, 1, .55) forwards, boing .6s .75s ease-out; }
+@keyframes drop { from { transform: translate(160px, 38px); } to { transform: translate(160px, 124px); } }
+@keyframes boing { 0% { transform: translate(160px, 124px); } 40% { transform: translate(160px, 100px); } 100% { transform: translate(160px, 124px); } }
+.face-ok, .face-bad, .crack, .yolk, .sparkle { display: none; }
+#egg.safe .face-idle { display: none; } #egg.safe .face-ok { display: inline; }
+#egg.broke .face-idle { display: none; } #egg.broke .face-bad, #egg.broke .crack { display: inline; }
+.yolk.show { display: inline; }
+.sparkle.show { display: inline; animation: pop .5s .7s both; }
+@keyframes pop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+
+/* confetti */
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 20; }
+.confetti i { position: absolute; top: -20px; width: 12px; height: 18px; border-radius: 3px; animation: fall linear forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+.sr { position: absolute; left: -9999px; }
+@media (max-width: 440px) {
+  body { font-size: 18px; }
+  .ask { flex-direction: column; align-items: stretch; }
+  .ask .mascot { align-self: center; }
+  .bubble::before { left: 50%; top: -14px; margin: 0 0 0 -10px; border: 10px solid transparent; border-bottom: 14px solid var(--yellow); border-top: 0; }
+  .bubble { font-size: 24px; }
+  .star { width: 24px; height: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .confetti { display: none; }
+}
+</style>
+
+<div class="wrap">
+  <div class="top" id="top" hidden>
+    <div class="stars" id="stars" aria-label="Progress"></div>
+    <button class="icon-btn" id="mute" aria-label="Sound on" title="Sound on/off">🔊</button>
+  </div>
+
+  <section class="card center" id="start">
+    <div class="mascot bounce start-mascot" data-mood="happy"></div>
+    <h1>Brainy's Brain Game</h1>
+    <p class="lead">Help Brainy learn about the brain! Get stars for every answer.</p>
+    <button class="big" id="play">Play!</button>
+  </section>
+
+  <section id="game" hidden>
+    <div class="card" style="display:flex;flex-direction:column;gap:16px">
+      <div class="ask">
+        <div class="mascot" id="guide" data-mood="happy"></div>
+        <div class="bubble">
+          <span id="qtext"></span>
+          <div><button class="listen" id="listen" hidden><span aria-hidden="true">🔈</span> Listen</button></div>
+        </div>
+      </div>
+      <div class="lab" id="lab" hidden>
+        <svg viewBox="0 0 320 210" role="img" aria-label="An egg about to drop into a box">
+          <rect x="0" y="190" width="320" height="20" fill="#C9E6B8"/>
+          <g id="filler"></g>
+          <g id="egg">
+            <path d="M0 -30 C 26 -28 30 18 0 28 C -30 18 -26 -28 0 -30 Z" fill="#fff" stroke="#2B2B3A" stroke-width="3"/>
+            <g class="face-idle"><circle cx="-8" cy="-4" r="3" fill="#2B2B3A"/><circle cx="8" cy="-4" r="3" fill="#2B2B3A"/><ellipse cx="0" cy="8" rx="4" ry="3" fill="#2B2B3A"/></g>
+            <g class="face-ok"><circle cx="-8" cy="-4" r="3" fill="#2B2B3A"/><circle cx="8" cy="-4" r="3" fill="#2B2B3A"/><path d="M-8 6 Q0 16 8 6" fill="none" stroke="#2B2B3A" stroke-width="3" stroke-linecap="round"/></g>
+            <g class="face-bad"><path d="M-12 -8 l8 8 m0 -8 l-8 8 M4 -8 l8 8 m0 -8 l-8 8" stroke="#2B2B3A" stroke-width="3" stroke-linecap="round"/><path d="M-7 12 Q0 5 7 12" fill="none" stroke="#2B2B3A" stroke-width="3" stroke-linecap="round"/></g>
+            <path class="crack" d="M-4 -29 L4 -16 L-6 -8 L5 2 L-3 12" fill="none" stroke="#2B2B3A" stroke-width="3" stroke-linejoin="round"/>
+          </g>
+          <ellipse class="yolk" id="yolk" cx="160" cy="176" rx="46" ry="11" fill="#FFD84D" stroke="#E0A200" stroke-width="3"/>
+          <g id="box">
+            <path d="M88 150 H232 L222 190 H98 Z" fill="#E2A868" stroke="#9A6A32" stroke-width="3" stroke-linejoin="round"/>
+          </g>
+          <text class="sparkle" id="spark" x="160" y="70" text-anchor="middle" font-size="40">⭐</text>
+        </svg>
+      </div>
+      <div class="opts" id="opts"></div>
+      <div class="msg" id="msg" aria-live="polite"></div>
+      <div id="factbox" hidden></div>
+      <div class="nextrow"><button class="big alt" id="next" hidden>Next</button></div>
+    </div>
+  </section>
+
+  <section class="card center" id="end" hidden>
+    <div class="mascot bounce" data-mood="cheer" style="--s:1"></div>
+    <h2 id="endtitle">You did it!</h2>
+    <div class="stars" id="endstars" style="justify-content:center"></div>
+    <p class="lead" id="endtext"></p>
+    <button class="big" id="again">Play again</button>
+  </section>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- mascot ---------- */
+  function brainSVG(mood) {
+    var bumps = [[30,50,22],[52,32,24],[82,32,24],[96,60,20],[72,74,22],[40,74,20],[60,54,30]];
+    var s = '<svg viewBox="0 0 126 108" role="img" aria-label="Brainy the brain">';
+    bumps.forEach(function (b) { s += '<circle cx="'+b[0]+'" cy="'+b[1]+'" r="'+(b[2]+3)+'" fill="#D9577A"/>'; });
+    bumps.forEach(function (b) { s += '<circle cx="'+b[0]+'" cy="'+b[1]+'" r="'+b[2]+'" fill="#FFA9BC"/>'; });
+    s += '<g fill="none" stroke="#E87F9B" stroke-width="3" stroke-linecap="round">' +
+         '<path d="M34 34 q8 6 4 14"/><path d="M62 18 q-6 10 2 16"/><path d="M88 22 q6 8 0 14"/><path d="M100 50 q-8 4 -6 12"/><path d="M30 64 q8 -2 10 6"/><path d="M84 84 q-2 -8 6 -10"/></g>';
+    var eyeY = mood === 'oops' ? 56 : 54;
+    if (mood === 'cheer') {
+      s += '<path d="M40 54 q7 -9 14 0 M70 54 q7 -9 14 0" fill="none" stroke="#2B2B3A" stroke-width="4" stroke-linecap="round"/>';
+    } else {
+      s += '<circle cx="47" cy="'+eyeY+'" r="6" fill="#2B2B3A"/><circle cx="77" cy="'+eyeY+'" r="6" fill="#2B2B3A"/>' +
+           '<circle cx="49" cy="'+(eyeY-2)+'" r="2" fill="#fff"/><circle cx="79" cy="'+(eyeY-2)+'" r="2" fill="#fff"/>';
+    }
+    s += '<ellipse cx="34" cy="68" rx="7" ry="4.5" fill="#FF7A9A" opacity=".7"/><ellipse cx="90" cy="68" rx="7" ry="4.5" fill="#FF7A9A" opacity=".7"/>';
+    if (mood === 'cheer') s += '<path d="M50 66 Q62 86 74 66 Z" fill="#B03A55" stroke="#B03A55" stroke-width="3" stroke-linejoin="round"/>';
+    else if (mood === 'oops') s += '<path d="M54 74 Q62 66 70 74" fill="none" stroke="#2B2B3A" stroke-width="4" stroke-linecap="round"/>';
+    else s += '<path d="M52 68 Q62 80 72 68" fill="none" stroke="#2B2B3A" stroke-width="4" stroke-linecap="round"/>';
+    if (mood === 'cheer') s += '<text x="8" y="22" font-size="18">✨</text><text x="102" y="20" font-size="18">✨</text>';
+    return s + '</svg>';
+  }
+  function setMood(el, mood) { el.innerHTML = brainSVG(mood); el.setAttribute('data-mood', mood); }
+  document.querySelectorAll('.mascot').forEach(function (m) { setMood(m, m.getAttribute('data-mood')); });
+
+  /* ---------- sound ---------- */
+  var ctx = null, muted = false;
+  function audio() {
+    try { if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (e) { ctx = null; }
+    return ctx;
+  }
+  function tone(freq, start, dur, type, vol) {
+    var a = audio(); if (!a || muted) return;
+    try {
+      var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + start;
+      o.type = type || 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.18, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+    } catch (e) {}
+  }
+  var sfx = {
+    good: function () { tone(523, 0, .14); tone(659, .12, .14); tone(784, .24, .22); },
+    oops: function () { tone(300, 0, .16, 'triangle'); tone(240, .14, .22, 'triangle'); },
+    crack: function () { tone(180, 0, .08, 'square', .12); tone(120, .07, .14, 'square', .1); },
+    thud: function () { tone(140, 0, .18, 'sine', .25); },
+    win: function () { [523, 659, 784, 1047, 784, 1047].forEach(function (f, i) { tone(f, i * .13, .2); }); }
+  };
+  $('mute').addEventListener('click', function () {
+    muted = !muted; this.textContent = muted ? '🔇' : '🔊'; this.setAttribute('aria-label', muted ? 'Sound off' : 'Sound on');
+    if (muted && window.speechSynthesis) try { speechSynthesis.cancel(); } catch (e) {}
+  });
+
+  /* ---------- speech ---------- */
+  var canSpeak = false;
+  try { canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window; } catch (e) {}
+  function speak(text) {
+    if (!canSpeak || muted) return;
+    try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(text); u.rate = .9; u.pitch = 1.1; speechSynthesis.speak(u); } catch (e) {}
+  }
+
+  /* ---------- questions ---------- */
+  var Q = [
+    { q: 'Where is your brain?', fact: 'Your brain is inside your head.',
+      o: [['Inside my head', '🧒', 1], ['In my tummy', '🍕', 0], ['In my foot', '🦶', 0]] },
+    { q: 'What shape is a brain?', fact: 'A brain is shaped like a wrinkled walnut.',
+      o: [['A wrinkled walnut', '🌰', 1], ['A banana', '🍌', 0], ['A square box', '📦', 0]] },
+    { q: 'What protects your brain?', fact: 'Your hard skull is like a helmet for your brain.',
+      o: [['My hard skull', '🦴', 1], ['A soft pillow', '🛏️', 0], ['A sandwich', '🥪', 0]] },
+    { q: 'What is a job for your brain?', fact: 'Your brain collects and stores information. That is your memory!',
+      o: [['Helps me remember things', '💭', 1], ['Makes my shoes', '👟', 0], ['Waters the plants', '🌱', 0]] },
+    { q: 'Does your brain work when you sleep?', fact: 'Your brain still works when you are asleep.',
+      o: [['Yes! It still works', '😴', 1], ['No, it stops', '🛑', 0]] },
+    { q: 'What is the brain mostly made of?', fact: 'The brain is mostly water. Drink lots of water so your brain works well!',
+      o: [['Water', '💧', 1], ['Sand', '🏖️', 0], ['Cheese', '🧀', 0]] },
+    { egg: true, q: 'The egg is the brain. Which box keeps the egg safest?', fact: 'Cotton wool protects the egg, just like protective headgear protects your brain.',
+      o: [['Just an empty box', '📦', 0, 'empty'], ['A box with cotton wool', '☁️', 1, 'cotton'], ['A box with stones', '🪨', 0, 'stones']] },
+    { q: 'You ride a bike. How do you protect your brain?', fact: 'A helmet is protective headgear. Always wear one!',
+      o: [['Wear a helmet', '⛑️', 1], ['Wear sunglasses', '🕶️', 0], ['Wear a scarf', '🧣', 0]] }
+  ];
+  var N = Q.length, idx = 0, wrongThis = 0, score = 0, busy = false;
+
+  function starSVG(cls) { return '<svg class="star ' + (cls || '') + '" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"/></svg>'; }
+  function drawStars(box, done, now) {
+    var h = ''; for (var i = 0; i < N; i++) h += starSVG((i < done ? 'on ' : '') + (i === now ? 'now' : ''));
+    box.innerHTML = h;
+  }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function show(id) { ['start', 'game', 'end'].forEach(function (s) { $(s).hidden = s !== id; }); $('top').hidden = id !== 'game'; }
+
+  /* ---------- egg lab ---------- */
+  function setFiller(kind) {
+    var f = $('filler'), h = '';
+    if (kind === 'cotton') {
+      [[110,150,17],[135,140,20],[160,136,22],[186,140,20],[210,150,17],[160,158,26],[125,162,18],[196,162,18]].forEach(function (c) { h += '<circle cx="'+c[0]+'" cy="'+c[1]+'" r="'+c[2]+'" fill="#fff" stroke="#C9D6E2" stroke-width="2.5"/>'; });
+    } else if (kind === 'stones') {
+      [[112,156,13],[136,150,15],[162,152,14],[188,150,15],[210,156,13],[150,166,13],[176,166,13]].forEach(function (c) { h += '<ellipse cx="'+c[0]+'" cy="'+c[1]+'" rx="'+c[2]+'" ry="'+(c[2]-3)+'" fill="#9AA3AD" stroke="#6F7883" stroke-width="2.5"/>'; });
+    }
+    f.innerHTML = h;
+  }
+  function resetEgg() {
+    var e = $('egg'); e.setAttribute('class', ''); void e.getBoundingClientRect();
+    $('yolk').classList.remove('show'); $('spark').classList.remove('show');
+    setFiller('');
+  }
+  function dropEgg(kind, safe, done) {
+    resetEgg(); setFiller(kind);
+    var e = $('egg'); void e.getBoundingClientRect();
+    e.setAttribute('class', safe ? 'soft' : 'drop');
+    setTimeout(function () {
+      if (safe) { e.setAttribute('class', 'soft safe'); sfx.thud(); $('spark').classList.add('show'); }
+      else { e.setAttribute('class', 'drop broke'); sfx.crack(); $('yolk').classList.add('show'); }
+    }, 750);
+    setTimeout(done, safe ? 1500 : 1700);
+  }
+
+  /* ---------- flow ---------- */
+  function loadQ() {
+    var item = Q[idx]; busy = false; wrongThis = 0;
+    drawStars($('stars'), score, idx);
+    $('qtext').textContent = item.q;
+    $('msg').textContent = ''; $('msg').className = 'msg';
+    $('factbox').hidden = true; $('next').hidden = true;
+    $('next').textContent = idx === N - 1 ? 'Finish!' : 'Next';
+    $('lab').hidden = !item.egg; if (item.egg) resetEgg();
+    setMood($('guide'), 'happy');
+    $('listen').hidden = !canSpeak;
+    var box = $('opts'); box.innerHTML = '';
+    shuffle(item.o).forEach(function (o) {
+      var b = document.createElement('button');
+      b.className = 'opt'; b.type = 'button';
+      b.innerHTML = '<span class="pic" aria-hidden="true">' + o[1] + '</span><span></span>';
+      b.lastChild.textContent = o[0];
+      b.addEventListener('click', function () { pick(b, o, item); });
+      box.appendChild(b);
+    });
+  }
+  function celebrate(item) {
+    $('msg').className = 'msg good'; $('msg').textContent = ['Yes! Well done!', 'Super!', 'Brilliant!', 'You got it!'][idx % 4];
+    var f = $('factbox'); f.className = 'fact'; f.textContent = item.fact; f.hidden = false;
+    setMood($('guide'), 'cheer'); sfx.good();
+    $('next').hidden = false; $('next').focus({ preventScroll: false });
+    document.querySelectorAll('.opt').forEach(function (b) { b.disabled = true; if (!b.classList.contains('right')) b.classList.add('dim'); });
+  }
+  function pick(btn, o, item) {
+    if (busy) return; audio();
+    if (item.egg) {
+      busy = true;
+      document.querySelectorAll('.opt').forEach(function (b) { b.disabled = true; });
+      var ok = !!o[2];
+      dropEgg(o[3], ok, function () {
+        if (ok) { btn.classList.add('right'); if (!wrongThis) score++; drawStars($('stars'), score, idx); celebrate(item); }
+        else {
+          wrongThis++; btn.classList.add('wrong'); setMood($('guide'), 'oops'); sfx.oops();
+          $('msg').className = 'msg try'; $('msg').textContent = 'Oh no, the egg cracked! Try a different box.';
+          document.querySelectorAll('.opt').forEach(function (b) { if (!b.classList.contains('wrong')) b.disabled = false; });
+          resetEgg(); busy = false;
+        }
+      });
+      return;
+    }
+    if (o[2]) {
+      btn.classList.add('right'); if (!wrongThis) score++; drawStars($('stars'), score, idx); celebrate(item);
+    } else {
+      wrongThis++; btn.classList.add('wrong'); btn.disabled = true; setMood($('guide'), 'oops'); sfx.oops();
+      $('msg').className = 'msg try'; $('msg').textContent = 'Nearly! Try again.';
+    }
+  }
+  function confetti() {
+    var box = document.createElement('div'); box.className = 'confetti';
+    var cols = ['#FF8FA8', '#FFC93C', '#2E9E4A', '#2F80ED', '#6B2C91'];
+    for (var i = 0; i < 40; i++) {
+      var p = document.createElement('i');
+      p.style.left = Math.random() * 100 + '%'; p.style.background = cols[i % cols.length];
+      p.style.animationDuration = (2 + Math.random() * 2) + 's'; p.style.animationDelay = (Math.random() * .8) + 's';
+      box.appendChild(p);
+    }
+    document.body.appendChild(box); setTimeout(function () { box.remove(); }, 5000);
+  }
+  function finish() {
+    show('end'); drawStars($('endstars'), score, -1);
+    var t, m;
+    if (score === N) { t = 'Perfect! Brain Champion!'; m = 'You got every star on your first try. Amazing!'; }
+    else if (score >= N - 3) { t = 'Great job, Brain Star!'; m = 'You got ' + score + ' stars. Play again to get them all!'; }
+    else { t = 'Well done, you finished!'; m = 'You got ' + score + ' stars. Play again to win more!'; }
+    $('endtitle').textContent = t; $('endtext').textContent = m;
+    sfx.win(); confetti();
+  }
+  $('play').addEventListener('click', function () { audio(); idx = 0; score = 0; show('game'); loadQ(); });
+  $('next').addEventListener('click', function () { idx++; if (idx >= N) finish(); else { loadQ(); window.scrollTo(0, 0); } });
+  $('again').addEventListener('click', function () { idx = 0; score = 0; show('game'); loadQ(); window.scrollTo(0, 0); });
+  $('listen').addEventListener('click', function () { speak(Q[idx].q); });
+})();
+</script>
+
+</body></html>
